@@ -9,6 +9,12 @@ end
 
 local function compileBuffer(tealBuf: number, luaBuf: number)
 	local lines = vim.api.nvim_buf_get_lines(tealBuf, 0, -1, false)
+	-- count leading newlines because they get dropped for some reason
+	local i = 0
+	while lines[i] == "\n" do
+		i = i + 1
+	end
+	local leadingNewlines = i
 	print("Compiling...")
 	local result = tl.process_string(table.concat(lines, "\n") .. "\n")
 	local output = tl.pretty_print_ast(result.ast) .. "\n"
@@ -19,8 +25,6 @@ local function compileBuffer(tealBuf: number, luaBuf: number)
 	-- This is a hack since table.concat with \n apparently has some weird behavior
 	-- table.concat({'a','','b'}, ',') = 'a,,b'
 	-- table.concat({'a','','b'}, '\n') = 'a\nb' -- the space gets dropped
-	local leadingNewlines = #lines - #compiledLines - 1
-	leadingNewlines = leadingNewlines >= 0 and leadingNewlines or 0
 	for i = 1, leadingNewlines do
 		table.insert(compiledLines, 1, "")
 	end
@@ -30,7 +34,7 @@ end
 
 local function syncCursor(src: number, dest: number)
 	local cursor = vim.api.nvim_win_get_cursor(src)
-	vim.api.nvim_win_set_cursor(dest, cursor)
+	pcall(vim.api.nvim_win_set_cursor, dest, cursor)
 end
 
 local function initialize()
